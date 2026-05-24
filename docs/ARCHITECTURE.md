@@ -200,6 +200,37 @@ model. Precedence is `deny` over `ask` over `allow`.
 OS-level sandboxing of the Bash tool is available as an optional additional
 hardening layer on top of these rules.
 
+### Verified capability facts and their limits
+
+A Claude Code capability check confirmed the following, which bound what this
+security model can and cannot promise.
+
+- **CRITICAL — the guarantees depend on the parent session's permission mode.**
+  All subagent tool restrictions, including gsd-verifier's no-write property,
+  are void if the parent session runs in `bypassPermissions`
+  (`--dangerously-skip-permissions`) or `acceptEdits` mode. These modes take
+  precedence and cannot be overridden by a subagent. GSD-Light's security
+  guarantees therefore depend, as a hard prerequisite, on never running the
+  parent session in either mode (consistent with the Purpose section's
+  commitment never to use `--dangerously-skip-permissions`).
+
+- **Subagent tool restriction is restrictive, not additive.** A subagent
+  declared with a `tools` allowlist may use only the tools on that list. Adding
+  a tool is impossible; omitting one denies it. So omitting `Write` from an
+  agent's allowlist is sufficient to deny writing under the normal permission
+  model — which is exactly how gsd-verifier is kept unable to alter the work.
+
+- **Subagents inherit the parent's working directory and cannot be scoped to a
+  narrower directory per-agent.** Per-agent path containment (for example,
+  preventing any write outside the project tree) cannot be expressed in the
+  agent definition itself. It must be enforced at the `settings.json` deny-rule
+  layer during the hooks/permissions phase, not per-agent.
+
+Future hardening option (not a current change): subagents also support a
+`disallowed-tools` denylist. gsd-verifier could be given an explicit
+`Write, Edit, MultiEdit` denial as defense-in-depth alongside its allowlist.
+This is recorded as an option for a later phase, not adopted here.
+
 ## Non-goals
 
 GSD-Light deliberately does not include: a multi-runtime installer, an npm
