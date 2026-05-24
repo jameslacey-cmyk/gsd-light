@@ -145,3 +145,30 @@ Closed two gaps flagged while building the confirmation-gated skills:
   and reconciled the prose (the `VERIFICATION-NN.md` "read by" line now lists
   gsd-execute-phase on a rework loop, and the Verification gate and rework
   paragraph states it reads the report). Contract and skill behavior now agree.
+
+## Calibration spike drift fix (2026-05-24)
+
+Found during the calibration spike: two skills predated the F18 resolution and
+still referenced the old non-numbered, overwrite-per-phase file names, drifting
+from the architecture's phase-numbered retention naming (`PLAN-NN.md`,
+`VERIFICATION-NN.md`).
+
+- **gsd-plan-phase: `PLAN.md` → `PLAN-NN.md`.** Updated the Reads/writes line,
+  the gsd-planner delegation instruction, and the procedure step to name
+  `.planning/PLAN-NN.md` with `NN` resolved from `STATE.current_phase`
+  (zero-padded). Rewrote the Notes from "per-phase and overwritten each phase"
+  to "per-phase and RETAINED — one file per phase as an audit trail, not
+  overwritten (unlike CONTEXT.md)."
+- **gsd-verify-work: `PLAN.md` → `PLAN-NN.md` and `VERIFICATION.md` →
+  `VERIFICATION-NN.md`.** Updated the Reads/writes line and the two procedure
+  steps (brief the verifier from `PLAN-NN.md`; write `VERIFICATION-NN.md`), with
+  `NN` resolved from `STATE.current_phase`, and noted the report is retained per
+  phase, not overwritten.
+- **Other four skills checked.** gsd-execute-phase and gsd-ship already used the
+  `-NN` names; gsd-new-project and gsd-discuss-phase reference neither file. No
+  non-numbered `PLAN.md`/`VERIFICATION.md` reference remains in any of the six
+  skills. `CONTEXT.md` (correctly overwrite-per-phase) was left unchanged.
+- **Scope.** Only file-naming references and the Notes wording changed; no
+  workflow logic, read/write contracts, delegation structure, or tool grants
+  were altered. All six skills now agree with the architecture's retention
+  naming.

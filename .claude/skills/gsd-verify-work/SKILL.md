@@ -17,12 +17,13 @@ record the outcome. Nothing else. This skill never modifies source.
 
 ## Reads / writes (per the architecture command table)
 
-- Reads: `.planning/REQUIREMENTS.md`, the phase plan (`.planning/PLAN.md`), the
-  built source code under test, and `.planning/STATE.md`. The built source is
-  read by gsd-verifier on this command's behalf (see Delegation); this skill's
-  own reads are confined to `.planning/`.
-- Writes: a verification report (`.planning/VERIFICATION.md`) and
-  `.planning/STATE.md`.
+- Reads: `.planning/REQUIREMENTS.md`, the phase plan (`.planning/PLAN-NN.md`,
+  where `NN` is the zero-padded `current_phase` from STATE), the built source
+  code under test, and `.planning/STATE.md`. The built source is read by
+  gsd-verifier on this command's behalf (see Delegation); this skill's own
+  reads are confined to `.planning/`.
+- Writes: a verification report (`.planning/VERIFICATION-NN.md`, same
+  zero-padded `NN`) and `.planning/STATE.md`.
 
 ## Delegation — state it explicitly; do not infer it
 
@@ -42,10 +43,13 @@ report from the verifier's returned result, and updating STATE.
 
 1. Read `STATE.md` for `current_phase`; set `phase_status` to `verifying` and
    refresh `last_updated`.
-2. Read `REQUIREMENTS.md` and `PLAN.md` to brief the verifier.
+2. Read `REQUIREMENTS.md` and `PLAN-NN.md` (NN = zero-padded `current_phase`
+   from step 1) to brief the verifier.
 3. Delegate to gsd-verifier; collect its structured pass/fail result.
-4. Write `.planning/VERIFICATION.md` from the returned result: overall pass/fail,
-   per-requirement status, and each failure's diagnosis.
+4. Write `.planning/VERIFICATION-NN.md` (NN = zero-padded `current_phase`) from
+   the returned result: overall pass/fail, per-requirement status, and each
+   failure's diagnosis. The report is retained per phase as an audit trail, not
+   overwritten.
 5. Update `STATE.md`:
    - On **failure**, set `phase_status` to `needs_rework`. The loop then returns
      to gsd-execute-phase, which sets `phase_status` back to `executing` and
