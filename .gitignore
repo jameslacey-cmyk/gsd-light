@@ -1,0 +1,23 @@
+# GSD-Light working state (never commit project planning state)
+.planning/
+
+# Secrets and credentials - NEVER commit these
+.env
+.env.*
+*.pem
+*.key
+.sfdx/
+.sf/
+.ssh/
+.aws/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
