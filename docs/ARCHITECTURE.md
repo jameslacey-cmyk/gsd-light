@@ -263,6 +263,29 @@ security model can and cannot promise.
   parent session in either mode (consistent with the Purpose section's
   commitment never to use `--dangerously-skip-permissions`).
 
+- **CRITICAL — the guarantees depend on genuine subagent context isolation.**
+  GSD-Light's subagents (especially gsd-verifier) are trusted precisely because
+  each runs in fresh, isolated context and judges only from the current files
+  and test results. Any tool or plugin that injects cross-session memory or
+  shared context into a session silently defeats that isolation. The observed
+  case is the `claude-mem` plugin (`thedotmack/claude-mem`), which carries
+  memory of prior sessions into the current one. Concrete consequence: with such
+  memory injection active, gsd-verifier can report a **false PASS on broken
+  code** — it confabulates a pass from stale remembered state (the
+  previously-correct code) instead of reporting the actually-failing test suite.
+  This was observed directly during the 2026-05-24 calibration spike: with
+  `claude-mem` enabled the verifier falsely PASSed deliberately-broken code;
+  with it disabled, the same blind verification on the same code correctly
+  FAILED, named the failing test, and diagnosed the regression to the line
+  (`int` vs `bool`), setting `needs_rework`. **Rule: GSD-Light must be run with
+  memory/context-injection plugins disabled.** Operating decision: `claude-mem`
+  is kept disabled. Like the `bypassPermissions` caveat above, this condition
+  voids the guarantees silently — nothing in the workflow surfaces it — so it is
+  a candidate for active enforcement (a SessionStart check that refuses to run,
+  or warns, when a memory-injection plugin is detected) when the
+  hooks/permissions layer is built, rather than relying on the operator to
+  remember.
+
 - **Subagent tool restriction is restrictive, not additive.** A subagent
   declared with a `tools` allowlist may use only the tools on that list. Adding
   a tool is impossible; omitting one denies it. So omitting `Write` from an

@@ -172,3 +172,30 @@ from the architecture's phase-numbered retention naming (`PLAN-NN.md`,
   workflow logic, read/write contracts, delegation structure, or tool grants
   were altered. All six skills now agree with the architecture's retention
   naming.
+
+## Memory-injection isolation constraint (2026-05-24)
+
+Found during the same calibration spike: gsd-verifier reported a false PASS on
+deliberately-broken code. The cause was isolated to the `claude-mem` plugin
+(`thedotmack/claude-mem`), which injects cross-session memory into the session
+and polluted the verifier's supposedly-isolated context with stale memory of
+the previously-correct code — so it confabulated a pass instead of reporting
+the failing test suite. With `claude-mem` disabled, the same blind verification
+on the same broken code correctly FAILED, named the failing test, and diagnosed
+the regression to the line (`todo.py:38`, `int` vs `bool`), setting
+`needs_rework`.
+
+- **Finding.** GSD-Light's subagents depend on genuine context isolation. Any
+  tool/plugin injecting cross-session memory or shared context silently defeats
+  it; the concrete failure mode is a verifier false PASS judged from stale
+  remembered state rather than the current files and test results.
+- **Constraint added.** A new "CRITICAL — the guarantees depend on genuine
+  subagent context isolation" caveat under ARCHITECTURE.md's "Verified
+  capability facts and their limits", sitting alongside the `bypassPermissions`
+  caveat (both describe conditions that void the guarantees silently). It names
+  `claude-mem` specifically, states the false-PASS consequence, gives the plain
+  disable rule, and flags a SessionStart enforcement check as a candidate for
+  the hooks/permissions phase.
+- **Decision.** Keep `claude-mem` disabled; GSD-Light is run without
+  memory-injection plugins.
+- **Scope.** Documentation only — no skills, agents, or settings changed.
