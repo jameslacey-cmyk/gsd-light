@@ -105,3 +105,26 @@ dismissed and were not touched.
   cross-reference in the Subagents section tying the planner/verifier grants to
   the Permissions and guardrails section. Resolves follow-up items 1 and 2 noted
   above.
+
+## Phase 2a resolutions (2026-05-24)
+
+Recorded in ARCHITECTURE.md after building the four non-destructive skills:
+
+- **F18 (state-file naming) resolved.** Named the phase plan and verification
+  report `PLAN-NN.md` and `VERIFICATION-NN.md` (zero-padded phase number),
+  phase-numbered and retained as an audit trail. Added a state-files subsection
+  and updated the command table (plan-phase writes `PLAN-NN.md`; execute-phase
+  and verify-work read it; verify-work writes `VERIFICATION-NN.md`; ship reads
+  it). `CONTEXT.md` stays per-phase overwrite (working scratch); plan and
+  verification are deliberately not overwritten.
+- **F7 (phase_status ownership) resolved.** Added a "Phase status ownership"
+  transition table assigning every status to one owning command
+  (new-project→not_started, discuss→discussed, plan→planned,
+  execute→executing, verify→verifying/needs_rework, ship→shipped). Noted the one
+  gap: after ship advances the pointer, no command re-initialises the next phase
+  to `not_started` (its first recorded status is `discussed`).
+- **Agent dispatch standard recorded.** Subagents are invoked via the `Agent`
+  tool (renamed from `Task` in Claude Code v2.1.63); skills scope spawns with
+  `Agent(agent_type)`. Documented the three delegating skills' grants
+  (gsd-new-project → researcher; gsd-plan-phase → researcher + planner;
+  gsd-verify-work → verifier) and that gsd-discuss-phase has no dispatch.

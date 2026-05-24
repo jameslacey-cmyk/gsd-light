@@ -111,6 +111,26 @@ The implementation decisions for the current phase only.
 
 Read by: gsd-plan-phase, gsd-execute-phase. Written by: gsd-discuss-phase.
 
+### PLAN-NN.md and VERIFICATION-NN.md (narrative, per-phase, retained)
+
+The executable plan and the verification report for a phase, where `NN` is the
+zero-padded phase number (for example `PLAN-01.md`, `VERIFICATION-01.md`).
+
+- `PLAN-NN.md`: the small, ordered, executable plan for phase `NN`, each step
+  traceable to the requirement numbers it satisfies.
+
+- `VERIFICATION-NN.md`: the structured pass/fail outcome for phase `NN`, with
+  per-requirement status and a diagnosis for each failure.
+
+These files are phase-numbered and retained — one pair per phase — so they form
+an audit trail of how each phase was planned and judged. Unlike `CONTEXT.md`,
+which is working scratch overwritten each phase, the plan and verification are
+deliberately not overwritten.
+
+`PLAN-NN.md` read by: gsd-execute-phase, gsd-verify-work. Written by: gsd-planner
+(delegated from gsd-plan-phase). `VERIFICATION-NN.md` read by: gsd-ship. Written
+by: gsd-verify-work.
+
 ## The command loop
 
 Six commands, run in order, looping discuss -> plan -> execute -> verify ->
@@ -120,15 +140,36 @@ ship per phase until a milestone is complete.
 |--------------------|----------------------------------------------------|----------------------------------------|---------------------------------|---------------------|
 | gsd-new-project    | Turn an idea into PROJECT, REQUIREMENTS, ROADMAP   | user input                             | PROJECT, REQUIREMENTS, ROADMAP, STATE | gsd-researcher (optional) |
 | gsd-discuss-phase  | Capture implementation decisions for one phase     | PROJECT, REQUIREMENTS, ROADMAP, STATE  | CONTEXT, STATE                  | none                |
-| gsd-plan-phase     | Produce a small, executable plan for one phase     | PROJECT, REQUIREMENTS, ROADMAP, CONTEXT, STATE | a phase plan file, STATE | gsd-researcher, gsd-planner |
-| gsd-execute-phase  | Build the phase against its plan                   | the phase plan, CONTEXT, STATE         | source code, STATE              | none                |
-| gsd-verify-work    | Check built work against the phase's requirements  | REQUIREMENTS, the phase plan, the built source code under test, STATE | a verification report, STATE | gsd-verifier        |
-| gsd-ship           | Finalize the phase and advance the position to the next phase | STATE, ROADMAP, the verification report | STATE                  | none                |
+| gsd-plan-phase     | Produce a small, executable plan for one phase     | PROJECT, REQUIREMENTS, ROADMAP, CONTEXT, STATE | PLAN-NN.md, STATE | gsd-researcher, gsd-planner |
+| gsd-execute-phase  | Build the phase against its plan                   | PLAN-NN.md, CONTEXT, STATE             | source code, STATE              | none                |
+| gsd-verify-work    | Check built work against the phase's requirements  | REQUIREMENTS, PLAN-NN.md, the built source code under test, STATE | VERIFICATION-NN.md, STATE | gsd-verifier        |
+| gsd-ship           | Finalize the phase and advance the position to the next phase | STATE, ROADMAP, VERIFICATION-NN.md | STATE                  | none                |
 
 Execution is serial in this version: `gsd-execute-phase` builds the phase
 itself and delegates to no subagent. Parallel execution across independent plan
 steps is a deliberate future enhancement and is not part of the current
 contract.
+
+### Phase status ownership
+
+Each `phase_status` value is owned by exactly one command, which sets it at the
+end of its run.
+
+| phase_status  | Owning command    | When it is set                                                        |
+|---------------|-------------------|-----------------------------------------------------------------------|
+| not_started   | gsd-new-project   | Initial state for the first phase, at project creation                |
+| discussed     | gsd-discuss-phase | After the phase's implementation decisions are captured               |
+| planned       | gsd-plan-phase    | After the phase plan is written                                       |
+| executing     | gsd-execute-phase | When building begins, and again on return from `needs_rework`         |
+| verifying     | gsd-verify-work   | When verification runs; left in place on a pass (the report records it) |
+| needs_rework  | gsd-verify-work   | On a failed verification; the loop returns to gsd-execute-phase       |
+| shipped       | gsd-ship          | When the phase is finalized and the position advances                 |
+
+Note: this mapping sets `not_started` only for the first phase. When `gsd-ship`
+advances `current_phase` to the next phase, no command re-initialises that
+phase to `not_started`; the next recorded status is `discussed`, set when
+`gsd-discuss-phase` runs for it. If an explicit `not_started` per phase is
+wanted, that transition would need an owner (a candidate for the gsd-ship pass).
 
 ### Verification gate and rework
 
@@ -181,6 +222,14 @@ model. Precedence is `deny` over `ask` over `allow`.
   granted `Write(.planning/**)` and no broader write access; `gsd-verifier` is
   granted no `Write` at all — it returns its result for the command to persist,
   so the thing that judges the work cannot alter it.
+
+- Subagent dispatch is scoped per skill. Subagents are invoked via the `Agent`
+  tool (renamed from `Task` in Claude Code v2.1.63). A skill restricts which
+  subagents it may spawn with `Agent(agent_type)` in its `allowed-tools`, never a
+  bare `Agent`. The three delegating skills are scoped accordingly:
+  gsd-new-project to `Agent(gsd-researcher)`; gsd-plan-phase to
+  `Agent(gsd-researcher), Agent(gsd-planner)`; gsd-verify-work to
+  `Agent(gsd-verifier)`. gsd-discuss-phase is granted no dispatch.
 
 - Credential protection via `deny` rules. Reads of sensitive credential paths
   are denied (for example `Read(**/.env)`, and the equivalents for `.sfdx`,
