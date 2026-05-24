@@ -128,3 +128,20 @@ Recorded in ARCHITECTURE.md after building the four non-destructive skills:
   `Agent(agent_type)`. Documented the three delegating skills' grants
   (gsd-new-project → researcher; gsd-plan-phase → researcher + planner;
   gsd-verify-work → verifier) and that gsd-discuss-phase has no dispatch.
+
+## Phase 2b gap closures (2026-05-24)
+
+Closed two gaps flagged while building the confirmation-gated skills:
+
+- **Unbacked PR-creation gate closed.** Added `"Bash(gh pr create:*)"` to the
+  `ask` list in `PROPOSED-SETTINGS.md` and moved it out of the "gates not yet
+  backed" section into the active proposed block (now retitled "Gate coverage").
+  Every confirmation gate claimed by gsd-execute-phase (deletions, destructive
+  git) and gsd-ship (git push, PR creation) now has a backing `ask` rule.
+  `PROPOSED-SETTINGS.md` remains a proposal; no `.claude/settings.json` was
+  created or activated.
+- **execute-phase rework read reconciled.** Updated the command table's
+  gsd-execute-phase "Reads" cell to include `VERIFICATION-NN.md (on rework)`,
+  and reconciled the prose (the `VERIFICATION-NN.md` "read by" line now lists
+  gsd-execute-phase on a rework loop, and the Verification gate and rework
+  paragraph states it reads the report). Contract and skill behavior now agree.

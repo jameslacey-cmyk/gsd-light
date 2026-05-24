@@ -128,8 +128,8 @@ which is working scratch overwritten each phase, the plan and verification are
 deliberately not overwritten.
 
 `PLAN-NN.md` read by: gsd-execute-phase, gsd-verify-work. Written by: gsd-planner
-(delegated from gsd-plan-phase). `VERIFICATION-NN.md` read by: gsd-ship. Written
-by: gsd-verify-work.
+(delegated from gsd-plan-phase). `VERIFICATION-NN.md` read by: gsd-ship, and
+gsd-execute-phase on a rework loop. Written by: gsd-verify-work.
 
 ## The command loop
 
@@ -141,7 +141,7 @@ ship per phase until a milestone is complete.
 | gsd-new-project    | Turn an idea into PROJECT, REQUIREMENTS, ROADMAP   | user input                             | PROJECT, REQUIREMENTS, ROADMAP, STATE | gsd-researcher (optional) |
 | gsd-discuss-phase  | Capture implementation decisions for one phase     | PROJECT, REQUIREMENTS, ROADMAP, STATE  | CONTEXT, STATE                  | none                |
 | gsd-plan-phase     | Produce a small, executable plan for one phase     | PROJECT, REQUIREMENTS, ROADMAP, CONTEXT, STATE | PLAN-NN.md, STATE | gsd-researcher, gsd-planner |
-| gsd-execute-phase  | Build the phase against its plan                   | PLAN-NN.md, CONTEXT, STATE             | source code, STATE              | none                |
+| gsd-execute-phase  | Build the phase against its plan                   | PLAN-NN.md, CONTEXT, STATE, VERIFICATION-NN.md (on rework) | source code, STATE | none                |
 | gsd-verify-work    | Check built work against the phase's requirements  | REQUIREMENTS, PLAN-NN.md, the built source code under test, STATE | VERIFICATION-NN.md, STATE | gsd-verifier        |
 | gsd-ship           | Finalize the phase and advance the position to the next phase | STATE, ROADMAP, VERIFICATION-NN.md | STATE                  | none                |
 
@@ -175,9 +175,9 @@ wanted, that transition would need an owner (a candidate for the gsd-ship pass).
 
 `gsd-verify-work` writes its pass/fail result to the verification report and
 records the outcome in `STATE`. On a failure it sets `phase_status` to
-`needs_rework`; the loop then returns to `gsd-execute-phase`, which sets
-`phase_status` back to `executing` and addresses the diagnosed failures before
-`gsd-verify-work` runs again. `gsd-ship` reads the verification report and
+`needs_rework`; the loop then returns to `gsd-execute-phase`, which reads
+`VERIFICATION-NN.md`, sets `phase_status` back to `executing`, and addresses the
+diagnosed failures before `gsd-verify-work` runs again. `gsd-ship` reads the verification report and
 refuses to ship a phase whose most recent verification did not pass.
 
 ### Confirmation gates
