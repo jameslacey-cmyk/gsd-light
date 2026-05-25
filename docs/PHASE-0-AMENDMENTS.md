@@ -291,7 +291,8 @@ recorded here:
      (`rm` vs `Remove-Item` vs `del`/`rmdir`, aliases, absolute paths) — rather
      than extending the brittle per-spelling `ask` list. (From WINDOWS DELETION
      GAP above; reinforces the hook candidacy already noted for the
-     hooks/permissions phase.)
+     hooks/permissions phase.) **RESOLVED 2026-05-25 — see "Destructive-command
+     hook built and validated" below.**
 - **RECORDED OBSERVATIONS — no source change recommended now:** the deny-glob
   absolute-path nuance (low priority, real usage is relative) and the sub-effort
   scoping behaviour (handled by supplying an explicit scope boundary at project
@@ -301,3 +302,58 @@ recorded here:
 - **Scope.** Documentation only — no skills, agents, or settings files in this
   repo were modified. In particular, `gsd-execute-phase`'s allowed-tools were not
   changed; the scope widening is recorded as a recommendation only.
+
+## Destructive-command hook built and validated (2026-05-25)
+
+Closes Phase 4 recommended follow-on #2. The robust, cross-platform replacement
+for the brittle per-spelling destructive `ask` rules is now built, tested, and
+committed to this repo under `hooks/`.
+
+- **What was built.** A Claude Code **PreToolUse** hook with a `Bash` matcher at
+  `hooks/gsd-destructive-guard.mjs`. It inspects the actual command string and
+  gates destructive operations *regardless of spelling or chaining*: file/dir
+  deletion across `rm`, `rmdir`, `unlink`, `Remove-Item`, the `ri` alias, `rd`,
+  `del`, `erase`, and the `[System.IO.File|Directory]::Delete` .NET form, plus
+  destructive git (`reset --hard`, `branch -d`/`-D`, `push --force`/`-f`/
+  `--force-with-lease`, `clean -f`). This catches the destructive *operation*
+  rather than matching one spelling at a time, which was the failure mode of the
+  declarative rules on Windows.
+- **Fail-closed, ask-never-deny.** Any error, unparseable input, or uncertainty
+  returns `ask`, never `allow` — a malfunction can never silently wave a
+  destructive command through. The hook only ever returns `ask` (it prompts for
+  confirmation), never `deny`, so the user can always proceed deliberately and the
+  hook cannot wedge the workflow.
+- **Validated by a regression suite.** `hooks/test-guard.mjs` runs the hook as a
+  subprocess and asserts the `permissionDecision` for **41 cases** (deletions in
+  every spelling, destructive git, innocent commands containing destructive
+  substrings → `allow`, non-Bash tools → `allow`, malformed input → `ask`). It
+  passes on Windows (`41 passed, 0 failed`); no real commands are executed, only
+  the decision is checked.
+- **Live-verified on the work machine.** Confirmed genuinely firing via the
+  `erase` discriminator test — a deletion spelling **no** `ask` rule covers — so a
+  prompt can only come from the hook; the prompt cited the hook by name with its
+  distinctive reason (`Destructive operation detected: erase (deletion)`).
+  `npm --version` was run to confirm no false positives in the live wiring.
+- **Harness portability bug found and fixed during validation.** On Windows,
+  `new URL(import.meta.url).pathname` yields a broken `/C:/...` path (leading
+  slash, URL-encoded), which broke the hook's self-path resolution. Fixed by using
+  `fileURLToPath()` from `node:url` instead. Recorded here because it is a general
+  Windows gotcha for any `.mjs` hook that resolves its own path.
+- **Registration is not duplicated here.** The PreToolUse/`Bash`-matcher
+  registration (user scope, Node-invocation form, live-verification procedure)
+  lives in `hooks/README.md`; refer to it rather than re-stating it.
+
+### Per-spelling `ask` rules now superseded (but retained)
+
+The per-spelling destructive `ask` rules in `settings.json`
+(`Bash(rm:*)`, `Bash(Remove-Item:*)`, `Bash(del:*)`, `Bash(rmdir:*)`, …) are now
+**superseded by the hook**, which gates the same operations more robustly. They
+are **retained as harmless redundancy**: both the rules and the hook resolve to
+`ask`, so they agree and do not conflict. They may be removed later once the hook
+is fully trusted, but there is no need to. The **credential `deny` rules are
+unaffected** — secret protection (`Read(**/.env)`, `Read(**/.sfdx/**)`, etc.)
+remains a separate concern handled by `deny` rules, not by this hook.
+
+- **Scope.** This entry is documentation only. The hook, its test, and its README
+  were committed under `hooks/`; no skill, agent, or `settings.json` was modified
+  in this pass.

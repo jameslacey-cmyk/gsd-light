@@ -188,9 +188,12 @@ gates are enforced by native permission rules in `settings.json`: destructive
 operations are matched by `ask` or `deny` rules (for example `ask` on
 `Bash(git push *)`, `Bash(gh pr create *)`, and the file- and branch-deletion
 commands), which take precedence over any `allow` rule. They are declarative
-settings, not instructions the model can talk itself out of. OS-level
-sandboxing of the Bash tool is available as an optional additional hardening
-layer.
+settings, not instructions the model can talk itself out of. For deletion and
+destructive-git commands, the robust spelling-independent gate is the PreToolUse
+hook in `hooks/` (see Permissions and guardrails, and `hooks/README.md`); the
+per-spelling `ask` rules are superseded by it but retained as harmless
+redundancy. OS-level sandboxing of the Bash tool is available as an optional
+additional hardening layer.
 
 ## Subagents
 
@@ -240,7 +243,12 @@ model. Precedence is `deny` over `ask` over `allow`.
 - Destructive-command gating via `ask` rules. Irreversible operations require
   confirmation (for example `ask` on `Bash(git push *)`, `Bash(gh pr create *)`,
   and file- and branch-deletion commands), as described under Confirmation
-  gates.
+  gates. For destructive *deletion and git* commands specifically, the robust
+  mechanism is the PreToolUse hook at `hooks/gsd-destructive-guard.mjs`, which
+  gates the operation regardless of spelling (`rm`/`Remove-Item`/`del`/`erase`/…)
+  and supersedes the brittle per-spelling `ask` rules; those rules are retained
+  only as harmless redundancy. Registration and live-verification live in
+  `hooks/README.md`.
 
 - Hooks are reserved for logic that cannot be expressed as a declarative rule.
   They block rather than warn, and are used only where a static allow/deny/ask
