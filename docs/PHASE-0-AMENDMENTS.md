@@ -199,3 +199,32 @@ the regression to the line (`todo.py:38`, `int` vs `bool`), setting
 - **Decision.** Keep `claude-mem` disabled; GSD-Light is run without
   memory-injection plugins.
 - **Scope.** Documentation only — no skills, agents, or settings changed.
+
+## Phase 3 — permission layer activated and validated (2026-05-25)
+
+The proposed permission rules moved from proposal to live. Activated at **USER
+scope** (`~/.claude/settings.json` on the work machine) and validated by direct
+behavioural test on 2026-05-25. The live config lives on the user's machine, not
+in this repo, so this is an audit record only — no `.claude/settings.json` was
+created or modified in the repository.
+
+- **Activated at user scope, deliberately.** User scope was chosen so the
+  credential `deny` rules protect *all* Claude Code work on the machine, not
+  just this project. Permission rules merge across scopes (user + project +
+  local) with `deny` taking precedence over every `allow`, so the user-scope
+  guardrails cannot be loosened by a project- or local-scope `allow`.
+- **Validation results.** `deny` on credential reads confirmed **blocking**
+  (not merely prompting) reads of `.env` and the real `.sfdx` directory; `ask`
+  confirmed **prompting** on `rm` (both bare and compound forms) and on
+  `git push`.
+- **Coverage widened.** Added `Read(**/*.env)` to the deny list so any
+  `.env`-suffixed file (e.g. `prod.env`) is covered, not only files literally
+  named `.env` or `.env.*`. Recorded in `PROPOSED-SETTINGS.md`, now retitled to
+  ACTIVATED with the validation results and user-scope rationale.
+- **Corrected misdiagnosis.** A suspected compound-command bypass of the `ask`
+  rules was investigated and **disproven** by direct test: `rm` fires the `ask`
+  prompt on both bare (`rm <path>`) and compound (chained in a single command)
+  forms. The earlier suspicion was wrong; no bypass exists.
+- **Scope.** Documentation/audit only — the activation happened in the user's
+  machine config; this repo's `PROPOSED-SETTINGS.md` and this log were updated
+  to record it.
