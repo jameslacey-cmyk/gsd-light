@@ -286,6 +286,23 @@ security model can and cannot promise.
   hooks/permissions layer is built, rather than relying on the operator to
   remember.
 
+- **Not all context/memory plugins behave the same — test each one before
+  trusting it.** The `claude-mem` finding above does *not* generalise to every
+  context plugin. The `context-mode` plugin (its `ctx-*` skills plus a
+  `context-mode` SessionStart cache-heal hook) was tested on 2026-05-25 with the
+  same deliberate-break verifier test used to expose `claude-mem`: with
+  `context-mode` active, a correct build verified **PASS**, and a deliberately
+  broken build (inverted logic) was correctly caught as **FAIL** with accurate
+  test counts and line-level diagnosis. So `context-mode` does **not** contaminate
+  the verifier — it judges from the current files and test results, not from
+  injected state — and is safe to run alongside GSD-Light. The contrast with
+  `claude-mem` (which injects cross-session memory and produces a false PASS) is
+  the point: **a context/memory-injection plugin must be tested individually with
+  the deliberate-break verifier test — correct build PASSes, deliberately broken
+  build FAILs with accurate diagnosis — before it is trusted alongside GSD-Light.**
+  Membership in the "context plugin" category is not sufficient to clear or to
+  condemn a plugin; only the test result is.
+
 - **Subagent tool restriction is restrictive, not additive.** A subagent
   declared with a `tools` allowlist may use only the tools on that list. Adding
   a tool is impossible; omitting one denies it. So omitting `Write` from an

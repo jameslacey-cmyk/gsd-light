@@ -228,3 +228,76 @@ created or modified in the repository.
 - **Scope.** Documentation/audit only — the activation happened in the user's
   machine config; this repo's `PROPOSED-SETTINGS.md` and this log were updated
   to record it.
+
+## Phase 4 — portability test on a second machine + real codebase (2026-05-25)
+
+GSD-Light was installed and run end-to-end on a second Windows machine (Claude
+Code 2.1.150) against a real codebase (a TypeScript/Node poker engine), and a
+follow-on plugin-compatibility test was run on the primary work machine. Findings
+recorded below; the plugin-compatibility result is recorded in ARCHITECTURE.md
+("Verified capability facts and their limits", alongside the `claude-mem` caveat).
+
+- **PORTABILITY CONFIRMED.** GSD-Light installs by copying `.claude/skills` and
+  `.claude/agents` into a target project; the agents and skills load correctly on
+  a second machine (Claude Code 2.1.150) with no machine-specific changes. The
+  full loop was validated end-to-end on a real codebase: discuss → plan → execute
+  → verify-FAIL → rework → verify-PASS → ship, including a deliberate immutability
+  regression that the verifier correctly caught (FAIL) before the rework. The
+  copy-in install model and the no-absolute-paths portability principle both hold
+  in practice.
+- **WINDOWS DELETION GAP (observation).** On Windows, Claude Code may execute
+  deletions via PowerShell cmdlets (`Remove-Item`) rather than `rm`, which the
+  Unix-style `Bash(rm:*)` `ask` rule does **not** match — so a deletion can run
+  without firing the confirmation gate. Mitigation applied on the test machines:
+  add `Bash(Remove-Item:*)`, `Bash(del:*)`, `Bash(rmdir:*)` to the `ask` list.
+  This is brittle — it pattern-matches command spellings and will miss aliases,
+  full paths, or other invocation forms — and is further evidence that a
+  PreToolUse hook is the robust cross-platform fix for destructive-command gating
+  (see follow-ons below).
+- **EXECUTE-SCOPE DEFAULT TOO NARROW (observation + recommended follow-on).**
+  `gsd-execute-phase`'s default allowed-tools write scope `Write(src/**)` /
+  `Edit(src/**)` does not cover projects that keep tests in a separate `tests/`
+  directory, and the Bash allowlist lacked `npx tsc` for TypeScript typechecking.
+  Per-project widening was required on the test machine: added `Write(tests/**)`,
+  `Edit(tests/**)`, and `Bash(npx tsc:*)`. Not changed in the source skill in
+  this pass (documentation-only) — see follow-ons.
+- **DENY-GLOB ABSOLUTE-PATH NUANCE (observation, low priority).** Credential
+  `deny` rules (e.g. `Read(**/.aws/**)`) reliably match relative / in-project
+  paths — which is the realistic agent case, since a poisoned project file induces
+  a relative read — but did **not** match a hand-typed Windows absolute path in
+  testing. Low priority because real usage is relative; recorded as a known edge,
+  not a recommended change.
+- **SUB-EFFORT SCOPING NEEDS A FIRM HAND (observation).** When `gsd-new-project`
+  is run inside a mature repo with a large `CLAUDE.md`, it initially gravitates
+  toward planning the whole project rather than the single feature being added. It
+  scopes correctly only when given an explicit boundary ("this is the only goal,
+  do not roadmap the broader project"). For feature-addition use in an existing
+  codebase, supply that boundary explicitly when starting the project. Recorded as
+  a usage note; no skill change recommended at this time.
+
+### Recommended source follow-ons vs. recorded observations
+
+Distinguishing what should be folded back into the source repo from what is just
+recorded here:
+
+- **RECOMMENDED — fold into the source repo:**
+  1. **Broaden `gsd-execute-phase`'s default write scope and Bash allowlist.**
+     Either widen the source default beyond `src/**` to cover a separate `tests/`
+     tree (and add `Bash(npx tsc:*)` for TypeScript typechecking), or document
+     per-project scope tuning as an explicit setup step. (From EXECUTE-SCOPE
+     above. Not applied in this documentation-only pass.)
+  2. **Build the PreToolUse destructive-command hook.** The robust, cross-platform
+     fix for destructive-command gating — independent of command spelling
+     (`rm` vs `Remove-Item` vs `del`/`rmdir`, aliases, absolute paths) — rather
+     than extending the brittle per-spelling `ask` list. (From WINDOWS DELETION
+     GAP above; reinforces the hook candidacy already noted for the
+     hooks/permissions phase.)
+- **RECORDED OBSERVATIONS — no source change recommended now:** the deny-glob
+  absolute-path nuance (low priority, real usage is relative) and the sub-effort
+  scoping behaviour (handled by supplying an explicit scope boundary at project
+  start). The Windows per-spelling `ask` additions were applied on the test
+  machines as an interim mitigation but are superseded by follow-on #2.
+
+- **Scope.** Documentation only — no skills, agents, or settings files in this
+  repo were modified. In particular, `gsd-execute-phase`'s allowed-tools were not
+  changed; the scope widening is recorded as a recommendation only.
