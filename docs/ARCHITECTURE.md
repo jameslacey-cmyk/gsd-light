@@ -188,9 +188,12 @@ gates are enforced by native permission rules in `settings.json`: destructive
 operations are matched by `ask` or `deny` rules (for example `ask` on
 `Bash(git push *)`, `Bash(gh pr create *)`, and the file- and branch-deletion
 commands), which take precedence over any `allow` rule. They are declarative
-settings, not instructions the model can talk itself out of. OS-level
-sandboxing of the Bash tool is available as an optional additional hardening
-layer.
+settings, not instructions the model can talk itself out of. For deletion and
+destructive-git commands, the robust spelling-independent gate is the PreToolUse
+hook in `hooks/` (see Permissions and guardrails, and `hooks/README.md`); the
+per-spelling `ask` rules are superseded by it but retained as harmless
+redundancy. OS-level sandboxing of the Bash tool is available as an optional
+additional hardening layer.
 
 ## Subagents
 
@@ -240,7 +243,12 @@ model. Precedence is `deny` over `ask` over `allow`.
 - Destructive-command gating via `ask` rules. Irreversible operations require
   confirmation (for example `ask` on `Bash(git push *)`, `Bash(gh pr create *)`,
   and file- and branch-deletion commands), as described under Confirmation
-  gates.
+  gates. For destructive *deletion and git* commands specifically, the robust
+  mechanism is the PreToolUse hook at `hooks/gsd-destructive-guard.mjs`, which
+  gates the operation regardless of spelling (`rm`/`Remove-Item`/`del`/`erase`/…)
+  and supersedes the brittle per-spelling `ask` rules; those rules are retained
+  only as harmless redundancy. Registration and live-verification live in
+  `hooks/README.md`.
 
 - Hooks are reserved for logic that cannot be expressed as a declarative rule.
   They block rather than warn, and are used only where a static allow/deny/ask
@@ -285,6 +293,23 @@ security model can and cannot promise.
   or warns, when a memory-injection plugin is detected) when the
   hooks/permissions layer is built, rather than relying on the operator to
   remember.
+
+- **Not all context/memory plugins behave the same — test each one before
+  trusting it.** The `claude-mem` finding above does *not* generalise to every
+  context plugin. The `context-mode` plugin (its `ctx-*` skills plus a
+  `context-mode` SessionStart cache-heal hook) was tested on 2026-05-25 with the
+  same deliberate-break verifier test used to expose `claude-mem`: with
+  `context-mode` active, a correct build verified **PASS**, and a deliberately
+  broken build (inverted logic) was correctly caught as **FAIL** with accurate
+  test counts and line-level diagnosis. So `context-mode` does **not** contaminate
+  the verifier — it judges from the current files and test results, not from
+  injected state — and is safe to run alongside GSD-Light. The contrast with
+  `claude-mem` (which injects cross-session memory and produces a false PASS) is
+  the point: **a context/memory-injection plugin must be tested individually with
+  the deliberate-break verifier test — correct build PASSes, deliberately broken
+  build FAILs with accurate diagnosis — before it is trusted alongside GSD-Light.**
+  Membership in the "context plugin" category is not sufficient to clear or to
+  condemn a plugin; only the test result is.
 
 - **Subagent tool restriction is restrictive, not additive.** A subagent
   declared with a `tools` allowlist may use only the tools on that list. Adding
