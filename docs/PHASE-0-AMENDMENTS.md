@@ -228,3 +228,42 @@ created or modified in the repository.
 - **Scope.** Documentation/audit only — the activation happened in the user's
   machine config; this repo's `PROPOSED-SETTINGS.md` and this log were updated
   to record it.
+
+## Finding: simplicity is a pipeline property; the headwater is gsd-new-project (2026-05-26)
+
+Core insight: in a spec-driven system, scope discipline is a pipeline property.
+Over-specification migrates upstream to the earliest unconstrained stage. A
+constraint at any one stage only stops that stage from exceeding its input; it
+cannot stop a bloated input from being faithfully realised downstream.
+
+- **How testing revealed this, in sequence.**
+  1. A simplicity clause was added to `gsd-execute-phase`. Testing showed
+     gold-plating does not originate in the executor: given a minimal plan it
+     builds minimally, but it faithfully builds whatever the plan specifies.
+  2. A simplicity constraint was then added to `gsd-planner`. Re-testing with
+     the same duration-parser brief showed the gold-plating had moved upstream
+     again: `gsd-new-project` had written "reject invalid input" and "throw on
+     malformed input" into `REQUIREMENTS.md` as formal requirements, which the
+     brief never requested. Once validation is a requirement, the planner
+     planning it is correct behaviour, not gold-plating, so the planner
+     constraint cannot catch it.
+- **Conclusion: the headwater is `gsd-new-project` (requirements capture).** To
+  enforce simplicity fully, `gsd-new-project` must take the minimal
+  interpretation of an ambiguous brief and record open decisions (for example,
+  "should malformed input be rejected?") rather than silently promoting the
+  expansive interpretation into a requirement. The verifier scope check sits
+  downstream and checks against the plan, so it cannot catch over-specification
+  that was ratified into the requirements.
+- **Status of the three edits made on the `improve-scope-and-simplicity`
+  branch.**
+  - Verifier scope check: proven conclusively (the unplanned-file test produced
+    a scope finding and `needs_rework` while correctness passed).
+  - Execute-phase simplicity clause: committed; constrains its own stage only.
+  - `gsd-planner` simplicity constraint: committed; constrains its own stage
+    only.
+  The two simplicity clauses are sound but insufficient alone, because the
+  headwater is upstream of both.
+- **Recommended next step.** Add a minimal-interpretation and
+  record-open-decisions constraint to `gsd-new-project`, tested with a
+  deliberately ambiguous brief to confirm it records the open decision rather
+  than resolving it expansively.
