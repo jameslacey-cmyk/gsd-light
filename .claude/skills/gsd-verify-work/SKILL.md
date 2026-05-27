@@ -48,14 +48,22 @@ report from the verifier's returned result, and updating STATE.
 3. Delegate to gsd-verifier; collect its structured pass/fail result.
 4. Write `.planning/VERIFICATION-NN.md` (NN = zero-padded `current_phase`) from
    the returned result: overall pass/fail, per-requirement status, and each
-   failure's diagnosis. The report is retained per phase as an audit trail, not
-   overwritten.
+   failure's diagnosis. Record the verifier's scope findings under a distinct
+   `## Scope` heading in the report, kept separate from the correctness results.
+   The report is retained per phase as an audit trail, not overwritten.
 5. Update `STATE.md`:
-   - On **failure**, set `phase_status` to `needs_rework`. The loop then returns
-     to gsd-execute-phase, which sets `phase_status` back to `executing` and
-     addresses the diagnosed failures before this skill runs again.
-   - On **pass**, leave `phase_status` as `verifying`; the report records the
-     pass, and gsd-ship gates on that report before finalizing.
+   - On a correctness **failure**, set `phase_status` to `needs_rework`. The loop
+     then returns to gsd-execute-phase, which sets `phase_status` back to
+     `executing` and addresses the diagnosed failures before this skill runs
+     again.
+   - Apply the scope escalation: if the verifier's scope findings include files
+     the plan did not anticipate (unplanned files), treat it as a failure and set
+     `phase_status` to `needs_rework`, even when every correctness check passed.
+     Scope findings that are only in-file churn (changes within files the plan
+     named) are recorded in the report but do not block the pass.
+   - On a **pass** with no blocking scope findings, leave `phase_status` as
+     `verifying`; the report records the pass, and gsd-ship gates on that report
+     before finalizing.
    - Append the verification outcome (date, decision, rationale) to
      `decision_log`.
 

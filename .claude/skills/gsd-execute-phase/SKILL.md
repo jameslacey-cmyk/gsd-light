@@ -45,6 +45,18 @@ Single responsibility: build the current phase against its plan. Nothing else.
    `last_updated`, and append any notable build decision (date, rationale) to
    `decision_log`.
 
+## Build scope
+
+Build only the minimum that satisfies the plan and the requirements it traces
+to. A detailed plan describes the outcome; it is not a licence to build beyond
+it. Add no speculative features, no configuration options nobody asked for, no
+single-use abstractions, and no error handling for conditions that cannot occur.
+
+If a requirement seems to need structure well beyond what the plan describes, do
+not expand on your own. Append the tension to `decision_log` (date, the
+mismatch, why it matters) and defer it back to plan/discuss, rather than
+over-building here.
+
 ## Delegation
 
 None. Execution is serial in this version (see the architecture's command

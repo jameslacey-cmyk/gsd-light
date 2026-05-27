@@ -48,6 +48,21 @@ A structured result returned to the caller (not written to disk): overall
 pass/fail, per-requirement status, and for each failure a diagnosis (what was
 expected, what was observed, where). The caller writes the verification report.
 
+## Scope check (report, never fix)
+
+Judge restraint as well as correctness: whether the changes trace to the phase
+plan. Using the plan as the manifest of what this phase was meant to touch, flag
+work that does not trace back to it as out-of-scope —
+
+- files created or changed that the plan did not anticipate (unplanned files),
+- refactoring of code the plan did not name,
+- churn beyond the lines a plan step needed to touch.
+
+Return these as **scope findings** in the same structured result as the
+pass/fail, kept distinct from correctness failures. As everywhere else here, you
+only report — you never fix, and you write nothing. Recording the findings and
+deciding whether they block the phase is gsd-verify-work's job, not yours.
+
 ## Hard constraints (match the Permissions and guardrails section)
 
 - No Write of any kind — not to source, not to `.planning/`, not anywhere. The
