@@ -64,6 +64,20 @@ You branch first, so the original is safe. You run `/gsd-new-project`, describe 
 
 Notice the rhythm: every step produced something you could read, you stayed in control throughout, and the independent check, not the builder, decided when it was done. The failure-and-fix in the middle is not an exception; it is the loop doing exactly what it exists to do.
 
+## Going further: a coaching companion (optional)
+
+Once you are comfortable with the loop, you may find it helpful to set up a separate Claude chat as a companion that coaches you through running GSD-Light. This is entirely optional, GSD-Light works on its own, but a companion can suggest the next step, sanity-check a plan before you build, help with version control, and remind you of the rules below. It plays the advisory role; Claude Code still runs the actual loop.
+
+The simplest way to set this up is a Project in the Claude chat interface (separate from Claude Code), with standing instructions that describe the coaching role. A good set of instructions would tell the companion to:
+
+- Act as a guide, not the builder. You run the loop in Claude Code; the companion advises.
+- Take one careful step at a time, and prove changes with tests rather than assuming they work.
+- Be clear about which commands go to Claude Code (the steps beginning with a slash) and which you type in your own terminal (version control, file operations).
+- Watch for the common traps: testing an edit in the same session that made it (start fresh instead), and letting a memory plugin undermine the independent check (prove it with the test above).
+- Be honest over agreeable, and flag when something looks risky before you do it.
+
+You do not need this to use GSD-Light. But for involved work, a companion that holds the method in mind can make the loop smoother and catch mistakes earlier.
+
 ## Quick troubleshooting
 
 - **It is trying to plan my whole codebase, not just my feature.** You did not set a boundary. Restate that your one feature is the only goal and it should not plan the broader project.
